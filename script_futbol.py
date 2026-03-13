@@ -3,49 +3,42 @@ import requests
 import google.generativeai as genai
 from datetime import datetime
 
-# Cargar llaves desde los Secrets de GitHub
-RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+# --- TUS LLAVES CONFIGURADAS ---
+RAPIDAPI_KEY = "94917fe064msh24444012bda73b4p1ce17djsncd71813fe0ae"
+TELEGRAM_TOKEN = "8703979002:AAHt1k1_LF4D_vBsnNlhiqJAQfVArNdwmyM"
+TELEGRAM_CHAT_ID = 5535233416
+GEMINI_API_KEY = "AIzaSyCv82Op0LgqflzNM41sYQ8Me3eNDvgN8J8" # <--- ESTA ES LA ÚNICA QUE ME FALTA
+
+genai.configure(api_key=GEMINI_API_KEY)
 
 def obtener_datos():
-    # Usando la nueva API: Free API Live Football Data
     url = "https://free-api-live-football-data.p.rapidapi.com/api-v1/get-popular-leagues"
     headers = {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": "free-api-live-football-data.p.rapidapi.com"
     }
-    
-    print("🛰️ Consultando ligas populares...")
-    response = requests.get(url, headers=headers).json()
-    return response
+    try:
+        response = requests.get(url, headers=headers)
+        return response.json()
+    except:
+        return None
 
 def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje, "parse_mode": "Markdown"}
-    response = requests.post(url, json=payload)
-    if response.status_code != 200:
-        print(f"❌ Error enviando a Telegram: {response.text}")
-    else:
-        print("✅ Mensaje entregado con éxito a Telegram")
+    requests.post(url, json=payload)
 
-# Ejecución principal
-try:
-    datos = obtener_datos()
-    
-    # Le pedimos a Gemini que filtre los invictos de esos datos
+# Ejecución
+datos = obtener_datos()
+if datos:
     model = genai.GenerativeModel('gemini-1.5-flash')
-    prompt = f"""
-    Analiza estos datos de fútbol: {datos}
-    Identifica equipos que jueguen hoy viernes o mañana sábado que vengan con rachas de 4+ partidos sin perder.
-    Crea un panel de valor con: Partido, Recomendación (Doble oportunidad o Hándicap) y Justificación breve.
-    Si no encuentras rachas claras, indica los 3 partidos más seguros de las ligas principales.
-    """
+    prompt = f"Analiza estos datos de fútbol y dime 3 pronósticos de valor para hoy basados en equipos que no hayan perdido en sus últimos partidos: {datos}"
     
-    resultado = model.generate_content(prompt)
-    enviar_telegram("📊 *PANEL DE VALOR GENERADO:* \n\n" + resultado.text)
-    print("✅ ¡Mensaje enviado a Telegram!")
-
-except Exception as e:
-    print(f"❌ Error: {e}")
+    try:
+        resultado = model.generate_content(prompt)
+        enviar_telegram("🚀 **PANEL DE HOY:**\n\n" + resultado.text)
+        print("✅ Enviado!")
+    except Exception as e:
+        print(f"Error: {e}")
+else:
+    print("No hay datos")
