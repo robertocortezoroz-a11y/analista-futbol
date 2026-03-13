@@ -23,7 +23,12 @@ def obtener_datos():
 
 def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    requests.post(url, json={"chat_id": TELEGRAM_CHAT_ID, "text": mensaje, "parse_mode": "Markdown"})
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": mensaje, "parse_mode": "Markdown"}
+    response = requests.post(url, json=payload)
+    if response.status_code != 200:
+        print(f"❌ Error enviando a Telegram: {response.text}")
+    else:
+        print("✅ Mensaje entregado con éxito a Telegram")
 
 # Ejecución principal
 try:
