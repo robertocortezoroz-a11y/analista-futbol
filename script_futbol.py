@@ -2,13 +2,13 @@ import os
 import requests
 import google.generativeai as genai
 
-# GitHub llenará esto automáticamente con tus Secrets
+# Carga segura desde GitHub Secrets
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# Configuración del motor de IA
+# Configuración de la IA
 genai.configure(api_key=GEMINI_API_KEY)
 
 def obtener_datos():
@@ -20,8 +20,8 @@ def obtener_datos():
     try:
         response = requests.get(url, headers=headers)
         return response.json()
-    except Exception as e:
-        return {"error": str(e)}
+    except:
+        return {"info": "No hay datos disponibles en este momento"}
 
 def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -32,21 +32,21 @@ def enviar_telegram(mensaje):
     }
     requests.post(url, json=payload)
 
-# Ejecución principal
+# Lógica principal
 try:
-    print("🛰️ Consultando datos de fútbol...")
+    print("🛰️ Consultando ligas...")
     datos = obtener_datos()
     
-    # Usamos el modelo correcto: 'gemini-1.5-flash'
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # CAMBIO IMPORTANTE: Usamos 'models/gemini-1.5-flash-latest'
+    model = genai.GenerativeModel('gemini-1.5-flash-latest')
     
-    prompt = f"Analiza estos datos de ligas populares: {datos}. Dime los 3 partidos más interesantes de hoy con un pronóstico breve. Usa emojis."
+    prompt = f"Analiza estos datos de fútbol: {datos}. Dame los 3 mejores pronósticos para hoy con emojis."
     
-    print("🧠 Generando análisis con IA...")
+    print("🧠 Generando análisis...")
     resultado = model.generate_content(prompt)
     
-    enviar_telegram("🤖 *MI ANALISTA IA* ⚽\n\n" + resultado.text)
-    print("✅ ¡Mensaje enviado a Telegram!")
+    enviar_telegram("📊 *REPORTE DEL DÍA* 📊\n\n" + resultado.text)
+    print("✅ ¡ENVIADO CON ÉXITO!")
 
 except Exception as e:
-    print(f"❌ Error durante el proceso: {e}")
+    print(f"❌ Error: {e}")
