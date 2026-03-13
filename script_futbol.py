@@ -8,52 +8,40 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
+# CONFIGURACIÓN
 genai.configure(api_key=GEMINI_API_KEY)
 
 def obtener_datos():
     url = "https://free-api-live-football-data.p.rapidapi.com/football-get-standing-all"
-    querystring = {"leagueid": "47"}
     headers = {
         "x-rapidapi-key": RAPIDAPI_KEY,
         "x-rapidapi-host": "free-api-live-football-data.p.rapidapi.com"
     }
-    response = requests.get(url, headers=headers, params=querystring)
+    # Consultamos la Premier League (ID 47)
+    response = requests.get(url, headers=headers, params={"leagueid": "47"})
     return response.json()
 
 def enviar_telegram(mensaje):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": str(TELEGRAM_CHAT_ID), "text": mensaje, "parse_mode": "Markdown"}
-    r = requests.post(url, json=payload)
-    return r.status_code
+    requests.post(url, json=payload)
 
 try:
-    print("⚽ Obteniendo datos...")
+    print("⚽ Obteniendo datos de fútbol...")
     datos = obtener_datos()
     
-    # Probamos nombres de modelos uno por uno hasta que uno funcione
-    modelos_a_probar = ['gemini-pro', 'models/gemini-1.5-flash-latest', 'models/gemini-1.5-pro']
-    resultado = None
+    # IMPORTANTE: Usamos 'gemini-1.5-flash' a secas, es el más compatible ahora
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
-    for nombre_modelo in modelos_a_probar:
-        try:
-            print(f"🤖 Intentando con: {nombre_modelo}...")
-            model = genai.GenerativeModel(nombre_modelo)
-            resultado = model.generate_content(f"Analiza estos datos de fútbol y dime los 3 mejores invictos con emojis: {datos}")
-            if resultado:
-                break
-        except:
-            print(f"❌ {nombre_modelo} falló, probando el siguiente...")
-            continue
-
-    if resultado:
-        print("📤 Enviando a Telegram...")
-        status = enviar_telegram("📊 *REPORTE DE HOY* 📊\n\n" + resultado.text)
-        if status == 200:
-            print("✅ ¡LOGRADO! Revisa tu Telegram.")
-        else:
-            print(f"⚠️ Telegram error {status}. Revisa tu Chat ID.")
-    else:
-        print("❌ Ningún modelo de Google respondió.")
+    prompt = f"Analiza estos datos de fútbol: {datos}. Dime quiénes son los invictos y dame un pick con emojis."
+    
+    print("🤖 Generando análisis con la nueva API Key...")
+    respuesta = model.generate_content(prompt)
+    
+    print("📤 Enviando a Telegram...")
+    enviar_telegram(f"🏆 *REPORTE RECIÉN SALIDO* 🏆\n\n{respuesta.text}")
+    
+    print("✅ ¡ESTO ES UN GOLAZO! Revisa tu Telegram.")
 
 except Exception as e:
-    print(f"❌ Error final: {e}")
+    print(f"❌ Error con la nueva llave: {e}")
