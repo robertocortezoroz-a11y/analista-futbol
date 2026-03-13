@@ -2,13 +2,12 @@ import os
 import requests
 import google.generativeai as genai
 
-# CARGA DE LLAVES
+# CARGA DE SECRETS
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# Configuración de Gemini
 genai.configure(api_key=GEMINI_API_KEY)
 
 def obtener_datos():
@@ -28,25 +27,33 @@ def enviar_telegram(mensaje):
     return r.status_code
 
 try:
-    print("🛰️ Consultando tabla de posiciones...")
-    datos_futbol = obtener_datos()
+    print("⚽ Obteniendo datos...")
+    datos = obtener_datos()
     
-    # IMPORTANTE: Nombre del modelo con el prefijo 'models/'
-    model = genai.GenerativeModel('models/gemini-1.5-flash')
+    # Probamos nombres de modelos uno por uno hasta que uno funcione
+    modelos_a_probar = ['gemini-pro', 'models/gemini-1.5-flash-latest', 'models/gemini-1.5-pro']
+    resultado = None
     
-    prompt = f"Analiza estos datos de la Premier League: {datos_futbol}. Identifica equipos con pocas derrotas y dame 3 pronósticos con emojis."
-    
-    print("🧠 Generando análisis con Gemini...")
-    # Usamos la configuración por defecto para evitar errores de versión
-    resultado = model.generate_content(prompt)
-    
-    print("📤 Enviando a Telegram...")
-    status = enviar_telegram("📊 *REPORTE DE HOY* 📊\n\n" + resultado.text)
-    
-    if status == 200:
-        print("✅ ¡TODO FUNCIONÓ! Revisa tu Telegram.")
+    for nombre_modelo in modelos_a_probar:
+        try:
+            print(f"🤖 Intentando con: {nombre_modelo}...")
+            model = genai.GenerativeModel(nombre_modelo)
+            resultado = model.generate_content(f"Analiza estos datos de fútbol y dime los 3 mejores invictos con emojis: {datos}")
+            if resultado:
+                break
+        except:
+            print(f"❌ {nombre_modelo} falló, probando el siguiente...")
+            continue
+
+    if resultado:
+        print("📤 Enviando a Telegram...")
+        status = enviar_telegram("📊 *REPORTE DE HOY* 📊\n\n" + resultado.text)
+        if status == 200:
+            print("✅ ¡LOGRADO! Revisa tu Telegram.")
+        else:
+            print(f"⚠️ Telegram error {status}. Revisa tu Chat ID.")
     else:
-        print(f"⚠️ Telegram dio error {status}. Verifica tu Chat ID.")
+        print("❌ Ningún modelo de Google respondió.")
 
 except Exception as e:
-    print(f"❌ Error detectado: {e}")
+    print(f"❌ Error final: {e}")
