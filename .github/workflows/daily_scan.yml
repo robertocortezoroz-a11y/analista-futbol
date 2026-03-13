@@ -1,23 +1,21 @@
 name: Escaneo Diario de Invictos
 
 on:
-  schedule:
-    - cron: '0 8 * * *' # Se ejecuta todos los dias a las 08:00 AM UTC
-  workflow_dispatch: # Este botón te permite ejecutarlo manualmente
+  workflow_dispatch: # Esto activa el botón de "Play" manual
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout del código
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: Configurar Python
-        uses: actions/setup-python@v5
+      - name: Configurar Python 3.10
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
-      - name: Instalar dependencias
+      - name: Instalar librerías
         run: |
           pip install requests google-generativeai
 
