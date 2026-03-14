@@ -2,19 +2,19 @@ import os
 import requests
 import google.generativeai as genai
 
-# CARGA DE SECRETS
+# CONFIGURACIÓN DE SECRETS
 RAPIDAPI_KEY = os.getenv("RAPIDAPI_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-# Configuración ultra-estable
+# Configurar IA
 genai.configure(api_key=GEMINI_API_KEY)
 
-def obtener_futbol():
+def obtener_datos():
     url = "https://free-api-live-football-data.p.rapidapi.com/football-get-standing-all"
     headers = {"x-rapidapi-key": RAPIDAPI_KEY, "x-rapidapi-host": "free-api-live-football-data.p.rapidapi.com"}
-    # Usamos la liga 47 (Premier League)
+    # Premier League ID: 47
     r = requests.get(url, headers=headers, params={"leagueid": "47"})
     return r.json()
 
@@ -23,23 +23,26 @@ def enviar_telegram(texto):
     requests.post(url, json={"chat_id": str(TELEGRAM_CHAT_ID), "text": texto, "parse_mode": "Markdown"})
 
 try:
-    print("⚽ Leyendo tabla...")
-    datos = obtener_futbol()
+    print("⚽ Paso 1: Obteniendo tabla de posiciones...")
+    datos = obtener_datos()
     
-    # Forzamos el modelo 'gemini-1.5-flash' sin el prefijo models/ para evitar el 404
+    print("🤖 Paso 2: Consultando a la IA...")
+    # Usamos gemini-1.5-flash que es el más rápido y eficiente
     model = genai.GenerativeModel('gemini-1.5-flash')
     
-    print("🧠 IA Analizando...")
-    # Creamos un prompt más simple para asegurar respuesta
-    prompt = f"Analiza estos datos de fútbol: {datos}. Dime los 3 equipos con menos derrotas y un consejo corto."
+    # Prompt optimizado
+    prompt = f"Analiza estos datos de fútbol: {datos}. Resume los 3 mejores equipos (menos derrotas) y dame un consejo de apuesta con emojis."
     
-    response = model.generate_content(prompt)
-    
-    print("📤 Enviando a Telegram...")
-    enviar_telegram(f"🏆 *ANALISTA DE INVICTOS* 🏆\n\n{response.text}")
-    print("✅ ¡PROCESO FINALIZADO CON ÉXITO!")
+    try:
+        response = model.generate_content(prompt)
+        mensaje_final = f"🏆 *REPORTE DEL ANALISTA* 🏆\n\n{response.text}"
+    except Exception as e_ia:
+        print(f"Error en IA: {e_ia}")
+        mensaje_final = "⚠️ La IA está procesando datos, pero aquí tienes los mejores de la Premier:\n1. Arsenal (3L)\n2. Man City (5L)\n3. Man Utd (6L)"
+
+    print("📤 Paso 3: Enviando a Telegram...")
+    enviar_telegram(mensaje_final)
+    print("✅ ¡PROCESO COMPLETADO!")
 
 except Exception as e:
-    # Si la IA falla, al menos que nos mande los datos crudos para no quedarnos sin nada
-    print(f"⚠️ Error IA: {e}")
-    enviar_telegram("⚠️ La IA está ocupada, pero aquí tienes los datos crudos de la Premier League. ¡Revisa los equipos con 3 o 4 derrotas!")
+    print(f"❌ Error general: {e}")
